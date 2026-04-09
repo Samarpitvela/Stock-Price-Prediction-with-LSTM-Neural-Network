@@ -91,27 +91,6 @@ Stock-Price-Prediction-LSTM/
 
 ---
 
-## 🧪 Sample Code (LSTM Model)
-
-```python
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout
-
-model = Sequential()
-
-model.add(LSTM(units=50, return_sequences=True, input_shape=(X_train.shape[1], 1)))
-model.add(Dropout(0.2))
-
-model.add(LSTM(units=50, return_sequences=False))
-model.add(Dropout(0.2))
-
-model.add(Dense(units=1))
-
-model.compile(optimizer='adam', loss='mean_squared_error')
-```
-
----
-
 ## 📈 Results
 
 * Visual comparison of **Predicted vs Actual Prices**
@@ -167,21 +146,3 @@ This project is for **educational purposes only**.
 Stock market predictions are uncertain and should not be used for financial decisions.
 
 ---
-
-## 🤝 Contributing
-
-Contributions are welcome!
-Feel free to fork the repo and submit a pull request.
-
----
-
-## 📬 Contact
-
-For queries or collaboration:
-
-* GitHub: your-username
-* Email: [your-email@example.com](mailto:your-email@example.com)
-
----
-
-⭐ If you found this project useful, don't forget to **star the repo!**
