@@ -1,54 +1,56 @@
 import pandas as pd
 import yfinance as yf
-import datetime
-from datetime import date, timedelta
-today = date.today()
+import numpy as np
 
-d1 = today.strftime("%Y-%m-%d")
-end_date = d1
-d2 = date.today() - timedelta(days=5000)
-d2 = d2.strftime("%Y-%m-%d")
-start_date = d2
+# Download data
+data = yf.download("AAPL", start="2015-01-01", end="2024-01-01", progress=False, auto_adjust=True)
 
-data = yf.download('AAPL', start=start_date, end=end_date, progress=False)
-data["Date"] = data.index
-data = data[["Date", "Open", "High", "Low", "Close",  "Adj Close", "Volume"]]
-data.reset_index(drop=True, inplace=True)
-data.tail()
+if data.empty:
+    raise ValueError("Data not loaded")
 
-import plotly.graph_objects as go
-figure = go.Figure(data=[go.Candlestick(x=data["Date"],
-                                        open=data["Open"], 
-                                        high=data["High"],
-                                        low=data["Low"], 
-                                        close=data["Close"])])
-figure.update_layout(title = "Apple Stock Price Analysis", 
-                     xaxis_rangeslider_visible=False)
-figure.show()
+# Fix columns
+data = data.reset_index()
+data = data[["Date", "Open", "High", "Low", "Close", "Volume"]]
 
+# Prepare data
+x = data[["Open", "High", "Low", "Volume"]].values
+y = data["Close"].values.reshape(-1, 1)
 
-x = data[["Open", "High", "Low", "Volume"]]
-y = data["Close"]
-x = x.to_numpy()
-y = y.to_numpy()
-y = y.reshape(-1, 1)
+# ✅ reshape for LSTM
+x = x.reshape((x.shape[0], x.shape[1], 1))
 
 from sklearn.model_selection import train_test_split
 xtrain, xtest, ytrain, ytest = train_test_split(x, y, test_size=0.2, random_state=42)
 
-from keras.models import Sequential
-from keras.layers import Dense, LSTM
+# Build model
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, LSTM
+
 model = Sequential()
-model.add(LSTM(128, return_sequences=True, input_shape= (xtrain.shape[1], 1)))
-model.add(LSTM(64, return_sequences=False))
+model.add(LSTM(128, return_sequences=True, input_shape=(xtrain.shape[1], 1)))
+model.add(LSTM(64))
 model.add(Dense(25))
 model.add(Dense(1))
-model.summary()
 
 model.compile(optimizer='adam', loss='mean_squared_error')
-model.fit(xtrain, ytrain, batch_size=1, epochs=30)
+model.fit(xtrain, ytrain, batch_size=1, epochs=5)  # reduce epochs first
 
-import numpy as np
-#features = [Open, High, Low, Adj Close, Volume]
-features = np.array([[177.089996, 180.419998, 177.070007, 74919600]])
-model.predict(features)
+# Prediction
+features = np.array([[177, 180, 177, 74919600]])
+features = features.reshape((1, 4, 1))
+
+y_pred = model.predict(features)
+print(y_pred)
+
+import plotly.graph_objects as go
+
+fig = go.Figure()
+
+fig.add_trace(go.Scatter(y=ytest.flatten(), mode='lines', name='Actual'))
+fig.add_trace(go.Scatter(y=y_pred.flatten(), mode='lines', name='Predicted'))
+
+fig.update_layout(title="Stock Prediction",
+                  xaxis_title="Time",
+                  yaxis_title="Price")
+
+fig.show()
